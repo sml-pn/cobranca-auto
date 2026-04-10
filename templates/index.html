@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Cobrança Inteligente{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-bell"></i> Parcelas que vencem nos próximos 5 dias</h2>
+        <span class="badge">{{ parcelas|length }} pendentes</span>
+    </div>
+    
+    {% if parcelas %}
+    <div class="parcela-list">
+        {% for p in parcelas %}
+        <div class="parcela-item">
+            <div class="parcela-info">
+                <h3>{{ p.cliente.nome }} <span style="font-weight: normal; font-size: 0.9rem; color: #64748b;">({{ p.cliente.carro }})</span></h3>
+                <div class="parcela-detail">
+                    <span><i class="fas fa-hashtag"></i> Parcela {{ p.numero }}</span>
+                    <span><i class="fas fa-money-bill-wave"></i> R$ {{ "%.2f"|format(p.valor) }}</span>
+                    <span><i class="fas fa-calendar-alt"></i> Vence {{ p.data_vencimento.strftime('%d/%m/%Y') }}</span>
+                    <span><i class="fas fa-clock"></i> Faltam {{ (p.data_vencimento - now.date()).days }} dias</span>
+                    <span><i class="fas fa-phone-alt"></i> {{ p.cliente.telefone }}</span>
+                </div>
+            </div>
+            <div class="parcela-actions">
+                {% if not p.pago %}
+                <a href="{{ url_for('pagar_parcela', id=p.id) }}" class="btn btn-success" onclick="return confirm('Confirmar pagamento da parcela {{ p.numero }} de {{ p.cliente.nome }}?')">
+                    <i class="fas fa-check-circle"></i> Marcar Paga
+                </a>
+                {% else %}
+                <span class="badge success"><i class="fas fa-check"></i> Paga</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2rem; color: #64748b;">
+        <i class="fas fa-smile-wink" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        <p>Nenhuma parcela próxima do vencimento. Ótimo trabalho!</p>
+        <a href="{{ url_for('nova_parcela') }}" class="btn btn-outline" style="margin-top: 1rem;"><i class="fas fa-plus"></i> Cadastrar parcela</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Card de atalhos rápidos -->
+<div class="card" style="background: linear-gradient(145deg, #f0f7ff 0%, #ffffff 80%);">
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-around;">
+        <div style="text-align: center;">
+            <a href="{{ url_for('novo_cliente') }}" style="text-decoration: none; color: #1e3c72;">
+                <i class="fas fa-user-plus" style="font-size: 2.5rem; background: white; padding: 20px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.05);"></i>
+                <p style="margin-top: 10px; font-weight: 600;">Novo Cliente</p>
+            </a>
+        </div>
+        <div style="text-align: center;">
+            <a href="{{ url_for('nova_parcela') }}" style="text-decoration: none; color: #1e3c72;">
+                <i class="fas fa-file-invoice" style="font-size: 2.5rem; background: white; padding: 20px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.05);"></i>
+                <p style="margin-top: 10px; font-weight: 600;">Nova Parcela</p>
+            </a>
+        </div>
+        <div style="text-align: center;">
+            <a href="{{ url_for('listar_clientes') }}" style="text-decoration: none; color: #1e3c72;">
+                <i class="fas fa-address-book" style="font-size: 2.5rem; background: white; padding: 20px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.05);"></i>
+                <p style="margin-top: 10px; font-weight: 600;">Ver Clientes</p>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

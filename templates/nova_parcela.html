@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Parcela - Cobrança Inteligente{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="card-header">
+        <h2><i class="fas fa-file-invoice-dollar"></i> Registrar Parcela</h2>
+    </div>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="cliente_id"><i class="fas fa-user-tag"></i> Cliente</label>
+            <select id="cliente_id" name="cliente_id" required>
+                <option value="" disabled selected>Selecione o cliente</option>
+                {% for c in clientes %}
+                <option value="{{ c.id }}" {% if request.args.get('cliente_id')|int == c.id %}selected{% endif %}>
+                    {{ c.nome }} ({{ c.carro }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="numero"><i class="fas fa-sort-numeric-up-alt"></i> Número da Parcela</label>
+            <input type="number" id="numero" name="numero" min="1" placeholder="Ex: 3" required>
+        </div>
+        <div class="form-group">
+            <label for="valor"><i class="fas fa-dollar-sign"></i> Valor (R$)</label>
+            <input type="number" id="valor" name="valor" step="0.01" min="0.01" placeholder="Ex: 1250.00" required>
+        </div>
+        <div class="form-group">
+            <label for="data_vencimento"><i class="fas fa-calendar"></i> Data de Vencimento</label>
+            <input type="date" id="data_vencimento" name="data_vencimento" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn"><i class="fas fa-check"></i> Registrar Parcela</button>
+            <a href="{{ url_for('index') }}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Voltar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
