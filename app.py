@@ -9,28 +9,31 @@ import atexit
 app = Flask(__name__)
 app.secret_key = 'sua-chave-secreta-aqui-mude-para-algo-seguro'
 
-# --- CONFIGURAÇÃO DO BANCO DE DADOS ---
+# --- BANCO DE DADOS ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if DATABASE_URL:
-    # Produção (Render) -> PostgreSQL
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 else:
-    # Desenvolvimento local -> SQLite
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cobranca.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- MODELOS ---
+# --- MODELOS ATUALIZADOS ---
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(20), unique=True, nullable=True)
     nome = db.Column(db.String(100), nullable=False)
     telefone = db.Column(db.String(20), nullable=False)
-    carro = db.Column(db.String(100))
-    parcelas = db.relationship('Parcela', backref='cliente', lazy=True)
+    carro = db.Column(db.String(100), nullable=False)
+    valor_total = db.Column(db.Float, nullable=False, default=0.0)
+    quantidade_parcelas = db.Column(db.Integer, nullable=False, default=1)
+    valor_parcela = db.Column(db.Float, nullable=False, default=0.0)
+    data_cadastro = db.Column(db.DateTime, default=datetime.now)
+    parcelas = db.relationship('Parcela', backref='cliente', lazy=True, cascade='all, delete-orphan')
 
 class Parcela(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -38,12 +41,13 @@ class Parcela(db.Model):
     numero = db.Column(db.Integer, nullable=False)
     valor = db.Column(db.Float, nullable=False)
     data_vencimento = db.Column(db.Date, nullable=False)
+    data_pagamento = db.Column(db.DateTime, nullable=True)
     pago = db.Column(db.Boolean, default=False)
+    observacao = db.Column(db.String(200), nullable=True)
 
-# --- CONTEXTO GLOBAL PARA TEMPLATES ---
+# --- CONTEXTO GLOBAL ---
 @app.context_processor
 def inject_now():
-    """Disponibiliza a data/hora atual em todos os templates."""
     return {'now': datetime.now()}
 
 # --- ROTAS ---
@@ -51,42 +55,65 @@ def inject_now():
 def index():
     hoje = datetime.now().date()
     limite = hoje + timedelta(days=5)
-    parcelas_proximas = Parcela.query.filter(
+    parcelas = Parcela.query.filter(
         Parcela.data_vencimento.between(hoje, limite),
         Parcela.pago == False
     ).order_by(Parcela.data_vencimento).all()
-    return render_template('index.html', parcelas=parcelas_proximas)
+    return render_template('index.html', parcelas=parcelas)
 
 @app.route('/clientes')
 def listar_clientes():
-    clientes = Cliente.query.all()
+    clientes = Cliente.query.order_by(Cliente.data_cadastro.desc()).all()
     return render_template('clientes.html', clientes=clientes)
 
 @app.route('/cliente/novo', methods=['GET', 'POST'])
 def novo_cliente():
     if request.method == 'POST':
-        nome = request.form['nome']
-        telefone = request.form['telefone']
-        carro = request.form['carro']
-        cliente = Cliente(nome=nome, telefone=telefone, carro=carro)
+        ultimo = Cliente.query.order_by(Cliente.id.desc()).first()
+        novo_id = (ultimo.id + 1) if ultimo else 1
+        codigo = f"CLI-{novo_id:03d}"
+        
+        valor_total = float(request.form['valor_total'])
+        quantidade = int(request.form['quantidade_parcelas'])
+        valor_parcela = valor_total / quantidade
+        
+        cliente = Cliente(
+            codigo=codigo,
+            nome=request.form['nome'],
+            telefone=request.form['telefone'],
+            carro=request.form['carro'],
+            valor_total=valor_total,
+            quantidade_parcelas=quantidade,
+            valor_parcela=valor_parcela
+        )
         db.session.add(cliente)
+        db.session.flush()
+        
+        data_base = datetime.strptime(request.form['data_primeiro_vencimento'], '%Y-%m-%d').date()
+        for i in range(1, quantidade + 1):
+            data_vencimento = data_base + timedelta(days=30 * (i - 1))
+            parcela = Parcela(
+                cliente_id=cliente.id,
+                numero=i,
+                valor=valor_parcela,
+                data_vencimento=data_vencimento,
+                pago=False
+            )
+            db.session.add(parcela)
+        
         db.session.commit()
-        flash('Cliente cadastrado com sucesso!', 'success')
+        flash(f'Cliente {codigo} cadastrado com {quantidade} parcelas!', 'success')
         return redirect(url_for('listar_clientes'))
     return render_template('novo_cliente.html')
 
 @app.route('/parcela/nova', methods=['GET', 'POST'])
 def nova_parcela():
     if request.method == 'POST':
-        cliente_id = request.form['cliente_id']
-        numero = int(request.form['numero'])
-        valor = float(request.form['valor'])
-        data_vencimento = datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date()
         parcela = Parcela(
-            cliente_id=cliente_id,
-            numero=numero,
-            valor=valor,
-            data_vencimento=data_vencimento
+            cliente_id=request.form['cliente_id'],
+            numero=int(request.form['numero']),
+            valor=float(request.form['valor']),
+            data_vencimento=datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date()
         )
         db.session.add(parcela)
         db.session.commit()
@@ -99,11 +126,11 @@ def nova_parcela():
 def pagar_parcela(id):
     parcela = Parcela.query.get_or_404(id)
     parcela.pago = True
+    parcela.data_pagamento = datetime.now()
     db.session.commit()
-    flash(f'Parcela {parcela.numero} de {parcela.cliente.nome} marcada como paga.', 'success')
+    flash(f'Parcela {parcela.numero}/{parcela.cliente.quantidade_parcelas} de {parcela.cliente.nome} paga!', 'success')
     return redirect(url_for('index'))
 
-# --- 🆕 NOVA ROTA: API DE LEMBRETES (COLOQUE AQUI) ---
 @app.route('/api/lembretes')
 def api_lembretes():
     hoje = datetime.now().date()
@@ -112,20 +139,19 @@ def api_lembretes():
         Parcela.data_vencimento.between(hoje, limite),
         Parcela.pago == False
     ).all()
-    
     resultado = []
     for p in parcelas:
         resultado.append({
             'cliente': p.cliente.nome,
             'carro': p.cliente.carro,
-            'parcela': p.numero,
+            'parcela': f"{p.numero}/{p.cliente.quantidade_parcelas}",
             'valor': f"R$ {p.valor:.2f}",
             'dias': (p.data_vencimento - hoje).days,
             'telefone': p.cliente.telefone
         })
     return {'lembretes': resultado}
 
-# --- FUNÇÃO DE VERIFICAÇÃO DIÁRIA ---
+# --- VERIFICAÇÃO DIÁRIA ---
 def verificar_lembretes():
     with app.app_context():
         hoje = datetime.now().date()
@@ -135,26 +161,13 @@ def verificar_lembretes():
             Parcela.pago == False
         ).all()
         if parcelas:
-            print("\n===== LEMBRETE DE COBRANÇA =====")
-            for p in parcelas:
-                print(f"Cliente: {p.cliente.nome} | Telefone: {p.cliente.telefone}")
-                print(f"Carro: {p.cliente.carro} | Parcela {p.numero} - R$ {p.valor:.2f}")
-                print(f"Vence em 5 dias ({p.data_vencimento.strftime('%d/%m/%Y')})")
-                print("---------------------------------")
-            print(f"Total de {len(parcelas)} lembretes gerados.")
-        else:
-            print("Nenhum lembrete para hoje.")
+            print(f"\n===== {len(parcelas)} LEMBRETES GERADOS =====")
 
-# --- AGENDADOR (executa diariamente às 8:00 UTC = 5:00 horário de Brasília) ---
 scheduler = BackgroundScheduler(timezone='UTC')
-scheduler.add_job(
-    func=verificar_lembretes,
-    trigger=CronTrigger(hour=8, minute=0, timezone='UTC')
-)
+scheduler.add_job(func=verificar_lembretes, trigger=CronTrigger(hour=8, minute=0))
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
-# --- CRIAÇÃO DAS TABELAS ---
 with app.app_context():
     db.create_all()
 

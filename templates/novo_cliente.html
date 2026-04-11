@@ -3,28 +3,76 @@
 {% block title %}Novo Cliente - Cobrança Inteligente{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 600px; margin: 0 auto;">
+<div class="card" style="max-width: 700px; margin: 0 auto;">
     <div class="card-header">
-        <h2><i class="fas fa-user-plus"></i> Cadastrar Cliente</h2>
+        <h2><i class="fas fa-user-plus"></i> Cadastrar Novo Cliente</h2>
     </div>
     
     <form method="POST">
         <div class="form-group">
-            <label for="nome"><i class="fas fa-user"></i> Nome completo</label>
+            <label for="nome"><i class="fas fa-user"></i> Nome completo *</label>
             <input type="text" id="nome" name="nome" placeholder="Ex: João da Silva" required autofocus>
         </div>
+        
         <div class="form-group">
-            <label for="telefone"><i class="fas fa-phone"></i> Telefone / WhatsApp</label>
-            <input type="text" id="telefone" name="telefone" placeholder="(11) 99999-9999" required>
+            <label for="telefone"><i class="fas fa-phone"></i> Telefone / WhatsApp *</label>
+            <input type="tel" id="telefone" name="telefone" placeholder="(11) 99999-9999" required>
         </div>
+        
         <div class="form-group">
-            <label for="carro"><i class="fas fa-car"></i> Veículo (modelo/placa)</label>
-            <input type="text" id="carro" name="carro" placeholder="Ex: Gol G5 - ABC1234">
+            <label for="carro"><i class="fas fa-car"></i> Veículo (modelo/placa) *</label>
+            <input type="text" id="carro" name="carro" placeholder="Ex: Gol G5 - ABC1234" required>
         </div>
+        
+        <div class="form-group">
+            <label for="valor_total"><i class="fas fa-dollar-sign"></i> Valor Total do Financiamento (R$) *</label>
+            <input type="number" id="valor_total" name="valor_total" step="0.01" min="0.01" placeholder="Ex: 15000.00" required onkeyup="calcularParcela()">
+        </div>
+        
+        <div class="form-group">
+            <label for="quantidade_parcelas"><i class="fas fa-calculator"></i> Quantidade de Parcelas *</label>
+            <input type="number" id="quantidade_parcelas" name="quantidade_parcelas" min="1" max="60" placeholder="Ex: 12" required onkeyup="calcularParcela()">
+        </div>
+        
+        <div class="form-group">
+            <label for="valor_parcela_preview"><i class="fas fa-money-bill-wave"></i> Valor de cada Parcela</label>
+            <input type="text" id="valor_parcela_preview" readonly style="background: #f1f5f9; font-weight: bold; color: #1e3c72;">
+        </div>
+        
+        <div class="form-group">
+            <label for="data_primeiro_vencimento"><i class="fas fa-calendar"></i> Data do Primeiro Vencimento *</label>
+            <input type="date" id="data_primeiro_vencimento" name="data_primeiro_vencimento" required>
+        </div>
+        
         <div class="form-actions">
-            <button type="submit" class="btn"><i class="fas fa-save"></i> Salvar Cliente</button>
+            <button type="submit" class="btn"><i class="fas fa-save"></i> Cadastrar Cliente e Gerar Parcelas</button>
             <a href="{{ url_for('listar_clientes') }}" class="btn btn-outline"><i class="fas fa-times"></i> Cancelar</a>
         </div>
     </form>
 </div>
+
+<script>
+    function calcularParcela() {
+        const valorTotal = parseFloat(document.getElementById('valor_total').value) || 0;
+        const quantidade = parseInt(document.getElementById('quantidade_parcelas').value) || 1;
+        const valorParcela = valorTotal / quantidade;
+        document.getElementById('valor_parcela_preview').value = `R$ ${valorParcela.toFixed(2)} (${quantidade}x)`;
+    }
+    
+    document.getElementById('telefone').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 11) {
+            value = `(${value.slice(0,2)}) ${value.slice(2,7)}-${value.slice(7,11)}`;
+        } else if (value.length >= 7) {
+            value = `(${value.slice(0,2)}) ${value.slice(2,6)}-${value.slice(6,10)}`;
+        } else if (value.length >= 3) {
+            value = `(${value.slice(0,2)}) ${value.slice(2)}`;
+        }
+        e.target.value = value;
+    });
+    
+    const hoje = new Date();
+    hoje.setDate(hoje.getDate() + 30);
+    document.getElementById('data_primeiro_vencimento').value = hoje.toISOString().split('T')[0];
+</script>
 {% endblock %}

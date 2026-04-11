@@ -14,28 +14,32 @@
         <table>
             <thead>
                 <tr>
+                    <th>Código</th>
                     <th>Nome</th>
                     <th>Telefone</th>
                     <th>Veículo</th>
-                    <th>Ações</th>
+                    <th>Valor Total</th>
+                    <th>Parcelas</th>
+                    <th>Cadastro</th>
                 </tr>
             </thead>
             <tbody>
                 {% for c in clientes %}
                 <tr>
-                    <td><strong>{{ c.nome }}</strong></td>
+                    <td><strong>{{ c.codigo or 'CLI-' ~ c.id }}</strong></td>
+                    <td>{{ c.nome }}</td>
                     <td><i class="fas fa-phone-alt"></i> {{ c.telefone }}</td>
-                    <td>{{ c.carro or '—' }}</td>
-                    <td>
-                        <a href="{{ url_for('nova_parcela') }}?cliente_id={{ c.id }}" style="color: #2a5298; text-decoration: none; font-weight: 500;"><i class="fas fa-plus-circle"></i> Nova parcela</a>
-                    </td>
+                    <td>{{ c.carro }}</td>
+                    <td>R$ {{ "%.2f"|format(c.valor_total) }}</td>
+                    <td>{{ c.quantidade_parcelas }}x de R$ {{ "%.2f"|format(c.valor_parcela) }}</td>
+                    <td>{{ c.data_cadastro.strftime('%d/%m/%Y') if c.data_cadastro else '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <p style="text-align: center; padding: 2rem;">Nenhum cliente cadastrado ainda. <a href="{{ url_for('novo_cliente') }}">Cadastre o primeiro</a>.</p>
+    <p style="text-align: center; padding: 2rem;">Nenhum cliente cadastrado.</p>
     {% endif %}
 </div>
 {% endblock %}
