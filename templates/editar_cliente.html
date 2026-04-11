@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Cliente - Cobrança Inteligente{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+    <div class="card-header">
+        <h2><i class="fas fa-user-edit"></i> Editar Cliente: {{ cliente.nome }}</h2>
+    </div>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="codigo"><i class="fas fa-barcode"></i> Código</label>
+            <input type="text" id="codigo" value="{{ cliente.codigo }}" readonly style="background: #f1f5f9;">
+        </div>
+        
+        <div class="form-group">
+            <label for="nome"><i class="fas fa-user"></i> Nome completo *</label>
+            <input type="text" id="nome" name="nome" value="{{ cliente.nome }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="telefone"><i class="fas fa-phone"></i> Telefone / WhatsApp *</label>
+            <input type="tel" id="telefone" name="telefone" value="{{ cliente.telefone }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="carro"><i class="fas fa-car"></i> Veículo (modelo/placa) *</label>
+            <input type="text" id="carro" name="carro" value="{{ cliente.carro }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="dia_vencimento"><i class="fas fa-calendar-day"></i> Dia de Vencimento Mensal *</label>
+            <select id="dia_vencimento" name="dia_vencimento" required style="width: auto; min-width: 100px;">
+                {% for d in range(1, 32) %}
+                <option value="{{ d }}" {% if d == cliente.dia_vencimento %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-info-circle"></i> Informações do Financiamento (não editáveis)</label>
+            <input type="text" value="Valor Total: R$ {{ "%.2f"|format(cliente.valor_total) }} | {{ cliente.quantidade_parcelas }}x de R$ {{ "%.2f"|format(cliente.valor_parcela) }}" readonly style="background: #f1f5f9;">
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn"><i class="fas fa-save"></i> Salvar Alterações</button>
+            <a href="{{ url_for('listar_clientes') }}" class="btn btn-outline"><i class="fas fa-times"></i> Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('telefone').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 11) {
+            value = `(${value.slice(0,2)}) ${value.slice(2,7)}-${value.slice(7,11)}`;
+        } else if (value.length >= 7) {
+            value = `(${value.slice(0,2)}) ${value.slice(2,6)}-${value.slice(6,10)}`;
+        } else if (value.length >= 3) {
+            value = `(${value.slice(0,2)}) ${value.slice(2)}`;
+        }
+        e.target.value = value;
+    });
+</script>
+{% endblock %}
