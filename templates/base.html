@@ -314,18 +314,43 @@
             .parcela-item { flex-direction: column; align-items: flex-start; }
             .parcela-actions { width: 100%; justify-content: flex-end; }
         }
-        #installAppBtn {
+
+        /* Botão fixo flutuante de instalação */
+        .install-floating-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
             background: #28a745;
-            color: white !important;
-            padding: 0.5rem 1rem !important;
-            border-radius: 30px !important;
-            border-bottom: none !important;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
         }
-        #installAppBtn i {
-            color: white !important;
+        .install-floating-btn i {
+            font-size: 1.3rem;
         }
-        #installAppBtn:hover {
-            background: #218838 !important;
+        .install-floating-btn:hover {
+            transform: scale(1.05);
+            background: #218838;
+        }
+        .install-floating-btn .close-btn {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 5px;
+            cursor: pointer;
         }
     </style>
     {% block extra_head %}{% endblock %}
@@ -339,10 +364,6 @@
         <a href="{{ url_for('listar_clientes') }}"><i class="fas fa-users"></i> Clientes</a>
         <a href="{{ url_for('nova_parcela') }}"><i class="fas fa-file-invoice-dollar"></i> Nova Parcela</a>
         <a href="{{ url_for('novo_cliente') }}"><i class="fas fa-user-plus"></i> Novo Cliente</a>
-        <!-- Botão de instalação (visível apenas quando disponível) -->
-        <a href="#" id="installAppBtn" style="display: none;" onclick="return false;">
-            <i class="fas fa-download"></i> Instalar App
-        </a>
     </nav>
 
     <main class="main-content">
@@ -363,6 +384,13 @@
     <footer class="footer">
         <p>&copy; {{ now.year }} Cobrança Auto Fácil – Lembretes inteligentes para seu negócio</p>
     </footer>
+
+    <!-- Botão fixo flutuante para instalação -->
+    <button class="install-floating-btn" id="floatingInstallBtn">
+        <i class="fas fa-download"></i>
+        <span>Instalar App</span>
+        <span class="close-btn" id="closeFloatingBtn">&times;</span>
+    </button>
 
     <script>
         // 1. REGISTRO DO SERVICE WORKER (para notificações push)
@@ -408,42 +436,72 @@
         window.addEventListener('load', () => { setTimeout(verificarLembretesENotificar, 5000); });
         setInterval(verificarLembretesENotificar, 30 * 60 * 1000);
 
-        // 4. LÓGICA DE INSTALAÇÃO (Botão no menu)
+        // 4. LÓGICA DO BOTÃO FLUTUANTE DE INSTALAÇÃO
         let deferredPrompt;
-        const installBtn = document.getElementById('installAppBtn');
+        const floatBtn = document.getElementById('floatingInstallBtn');
+        const closeBtn = document.getElementById('closeFloatingBtn');
 
+        // Função para verificar se o app já está instalado
+        function isAppInstalled() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                   window.navigator.standalone === true;
+        }
+
+        // Captura o evento de instalação (Chrome/Edge)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            if (installBtn) installBtn.style.display = 'inline-flex';
+            if (!isAppInstalled()) {
+                floatBtn.style.display = 'flex';
+            }
+            console.log('✅ beforeinstallprompt capturado, botão flutuante exibido');
         });
 
-        if (installBtn) {
-            installBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    deferredPrompt = null;
-                    installBtn.style.display = 'none';
+        // Fallback: se após 3 segundos o evento não foi disparado, mostra o botão de qualquer forma
+        setTimeout(() => {
+            if (!deferredPrompt && !isAppInstalled()) {
+                floatBtn.style.display = 'flex';
+                console.log('⚠️ Fallback: botão flutuante exibido sem beforeinstallprompt');
+            }
+        }, 3000);
+
+        // Ao clicar no botão flutuante
+        floatBtn.addEventListener('click', async (e) => {
+            // Se clicar no "X", não faz a instalação
+            if (e.target.classList.contains('close-btn')) return;
+            
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`Resultado da instalação: ${outcome}`);
+                deferredPrompt = null;
+                floatBtn.style.display = 'none';
+            } else {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    alert('📱 No iPhone/iPad, toque em "Compartilhar" (ícone do quadrado com seta) e depois em "Adicionar à Tela de Início".');
                 } else {
-                    alert('Para instalar o app, use o menu do navegador:\n' +
-                          '• Chrome PC: Menu → "Instalar Cobrança Auto Fácil..."\n' +
-                          '• Android: Menu → "Instalar aplicativo"\n' +
-                          '• iOS: Compartilhar → "Adicionar à Tela de Início"');
+                    alert('💻 Para instalar o app:\n\n• Chrome PC: Menu (três pontinhos) → "Instalar Cobrança Auto Fácil..."\n• Android: Menu → "Instalar aplicativo"\n\nSe a opção não aparecer, recarregue a página ou limpe o cache.');
                 }
-            });
-        }
-
-        // Esconde o botão se já estiver instalado
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            if (installBtn) installBtn.style.display = 'none';
-        }
-
-        window.addEventListener('appinstalled', () => {
-            if (installBtn) installBtn.style.display = 'none';
-            console.log('App instalado com sucesso!');
+            }
         });
+
+        // Fechar o botão flutuante
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            floatBtn.style.display = 'none';
+        });
+
+        // Se o app for instalado, esconde o botão
+        window.addEventListener('appinstalled', () => {
+            floatBtn.style.display = 'none';
+            console.log('🎉 App instalado com sucesso!');
+        });
+
+        // Se já estiver instalado, esconde o botão
+        if (isAppInstalled()) {
+            floatBtn.style.display = 'none';
+        }
     </script>
     {% block scripts %}{% endblock %}
 </body>
