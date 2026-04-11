@@ -168,8 +168,11 @@ scheduler.add_job(func=verificar_lembretes, trigger=CronTrigger(hour=8, minute=0
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
+# --- CRIAÇÃO DAS TABELAS (COM RESET TEMPORÁRIO) ---
 with app.app_context():
+    db.drop_all()
     db.create_all()
+    print("Banco de dados resetado com nova estrutura!")
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
