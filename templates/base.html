@@ -85,7 +85,6 @@
     <nav class="nav-bar">
         <a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Dashboard</a>
         <a href="{{ url_for('listar_clientes') }}"><i class="fas fa-users"></i> Clientes</a>
-        <a href="{{ url_for('nova_parcela') }}"><i class="fas fa-file-invoice-dollar"></i> Nova Parcela</a>
         <a href="{{ url_for('novo_cliente') }}"><i class="fas fa-user-plus"></i> Novo Cliente</a>
     </nav>
 
@@ -98,12 +97,13 @@
                         {{ message }}
                     </div>
                 {% endfor %}
-            {% endif %}
+            {% endif %}			
         {% endwith %}
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer">
+cd ~/sistema-cobranca
+nano templates/base.html    <footer class="footer">
         <p>&copy; {{ now.year }} Cobrança Auto Fácil – Lembretes inteligentes para seu negócio</p>
     </footer>
 
