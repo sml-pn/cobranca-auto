@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Cobrança Inteligente{% endblock %}
+{% block title %}Dashboard - Cobrança Fácil{% endblock %}
 
 {% block content %}
 <!-- Cards de Resumo -->
@@ -22,7 +22,7 @@
     </div>
     <div class="card" style="padding: 1.2rem; text-align: center; background: linear-gradient(135deg, #28a745, #218838); color: white;">
         <i class="fas fa-hand-holding-usd" style="font-size: 2rem;"></i>
-        <h3 style="margin: 10px 0; font-size: 1.4rem;">R$ {{ "%.2f"|format(total_receber) }}</h3>
+        <h3 style="margin: 10px 0; font-size: 1.4rem;">{{ total_receber|real }}</h3>
         <p>Total a Receber</p>
     </div>
 </div>
@@ -41,7 +41,7 @@
                 <h3>{{ p.cliente.nome }} <span style="font-weight: normal;">({{ p.cliente.carro }})</span></h3>
                 <div class="parcela-detail">
                     <span><i class="fas fa-tag"></i> Parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }}</span>
-                    <span><i class="fas fa-money-bill-wave"></i> R$ {{ "%.2f"|format(p.valor) }}</span>
+                    <span><i class="fas fa-money-bill-wave"></i> {{ p.valor|real }}</span>
                     <span><i class="fas fa-calendar-alt"></i> Venceu em {{ p.data_vencimento.strftime('%d/%m/%Y') }}</span>
                     <span style="color: #dc3545; font-weight: bold;"><i class="fas fa-clock"></i> Atrasada há {{ (now.date() - p.data_vencimento).days }} dias</span>
                     <span><i class="fas fa-phone-alt"></i> {{ p.cliente.telefone }}</span>
@@ -51,7 +51,7 @@
                 <a href="{{ url_for('pagar_parcela', id=p.id) }}" class="btn btn-success" onclick="return confirm('Confirmar pagamento da parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }} de {{ p.cliente.nome }}?')">
                     <i class="fas fa-check-circle"></i> Marcar Paga
                 </a>
-                <a href="https://wa.me/55{{ p.cliente.telefone|replace('(', '')|replace(')', '')|replace('-', '')|replace(' ', '') }}?text=Olá {{ p.cliente.nome|urlencode }}, a parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }} do seu {{ p.cliente.carro }} venceu em {{ p.data_vencimento.strftime('%d/%m/%Y') }} e está em atraso. Valor: R$ {{ '%.2f'|format(p.valor) }}. Por favor, regularize o pagamento." 
+                <a href="https://wa.me/55{{ p.cliente.telefone|replace('(', '')|replace(')', '')|replace('-', '')|replace(' ', '') }}?text={{ ('Olá ' + p.cliente.nome + ', a parcela ' + p.numero|string + '/' + p.cliente.quantidade_parcelas|string + ' do contrato ' + p.cliente.carro + ' venceu em ' + p.data_vencimento.strftime('%d/%m/%Y') + ' e está em atraso. Valor: ' + p.valor|real + '. Total financiado: ' + p.cliente.valor_total|real + '. Já foram pagas ' + p.cliente.parcelas|selectattr('pago')|list|length|string + ' parcelas. Faltam ' + (p.cliente.quantidade_parcelas - p.cliente.parcelas|selectattr('pago')|list|length)|string + ' parcelas. Regularize o pagamento.')|urlencode }}" 
                    target="_blank" class="btn btn-outline" style="background: #25D366; color: white; border: none;">
                     <i class="fab fa-whatsapp"></i> Cobrar
                 </a>
@@ -76,7 +76,7 @@
                 <h3>{{ p.cliente.nome }} <span style="font-weight: normal;">({{ p.cliente.carro }})</span></h3>
                 <div class="parcela-detail">
                     <span><i class="fas fa-tag"></i> Parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }}</span>
-                    <span><i class="fas fa-money-bill-wave"></i> R$ {{ "%.2f"|format(p.valor) }}</span>
+                    <span><i class="fas fa-money-bill-wave"></i> {{ p.valor|real }}</span>
                     <span><i class="fas fa-calendar-alt"></i> Vence HOJE ({{ p.data_vencimento.strftime('%d/%m/%Y') }})</span>
                     <span><i class="fas fa-phone-alt"></i> {{ p.cliente.telefone }}</span>
                 </div>
@@ -85,7 +85,7 @@
                 <a href="{{ url_for('pagar_parcela', id=p.id) }}" class="btn btn-success" onclick="return confirm('Confirmar pagamento da parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }} de {{ p.cliente.nome }}?')">
                     <i class="fas fa-check-circle"></i> Marcar Paga
                 </a>
-                <a href="https://wa.me/55{{ p.cliente.telefone|replace('(', '')|replace(')', '')|replace('-', '')|replace(' ', '') }}?text=Olá {{ p.cliente.nome|urlencode }}, a parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }} do seu {{ p.cliente.carro }} vence HOJE ({{ p.data_vencimento.strftime('%d/%m/%Y') }}). Valor: R$ {{ '%.2f'|format(p.valor) }}. Posso enviar o boleto/PIX?" 
+                <a href="https://wa.me/55{{ p.cliente.telefone|replace('(', '')|replace(')', '')|replace('-', '')|replace(' ', '') }}?text={{ ('Olá ' + p.cliente.nome + ', lembrete: a parcela ' + p.numero|string + '/' + p.cliente.quantidade_parcelas|string + ' do contrato ' + p.cliente.carro + ' vence HOJE (' + p.data_vencimento.strftime('%d/%m/%Y') + '). Valor: ' + p.valor|real + '. Total financiado: ' + p.cliente.valor_total|real + '. Já foram pagas ' + p.cliente.parcelas|selectattr('pago')|list|length|string + ' parcelas. Faltam ' + (p.cliente.quantidade_parcelas - p.cliente.parcelas|selectattr('pago')|list|length)|string + ' parcelas. Efetue o pagamento hoje. Obrigado!')|urlencode }}" 
                    target="_blank" class="btn btn-outline" style="background: #25D366; color: white; border: none;">
                     <i class="fab fa-whatsapp"></i> Notificar
                 </a>
@@ -96,7 +96,7 @@
 </div>
 {% endif %}
 
-<!-- Parcelas Esta Semana (exclui as de hoje, se já mostradas separadamente) -->
+<!-- Parcelas Esta Semana (exclui as de hoje) -->
 {% set semana_sem_hoje = esta_semana | rejectattr('data_vencimento', 'equalto', now.date()) | list %}
 {% if semana_sem_hoje %}
 <div class="card">
@@ -111,7 +111,7 @@
                 <h3>{{ p.cliente.nome }} <span style="font-weight: normal;">({{ p.cliente.carro }})</span></h3>
                 <div class="parcela-detail">
                     <span><i class="fas fa-tag"></i> Parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }}</span>
-                    <span><i class="fas fa-money-bill-wave"></i> R$ {{ "%.2f"|format(p.valor) }}</span>
+                    <span><i class="fas fa-money-bill-wave"></i> {{ p.valor|real }}</span>
                     <span><i class="fas fa-calendar-alt"></i> Vence {{ p.data_vencimento.strftime('%d/%m/%Y') }}</span>
                     <span><i class="fas fa-clock"></i> 
                         {% set dias = (p.data_vencimento - now.date()).days %}
@@ -128,7 +128,7 @@
                 <a href="{{ url_for('pagar_parcela', id=p.id) }}" class="btn btn-success" onclick="return confirm('Confirmar pagamento da parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }} de {{ p.cliente.nome }}?')">
                     <i class="fas fa-check-circle"></i> Marcar Paga
                 </a>
-                <a href="https://wa.me/55{{ p.cliente.telefone|replace('(', '')|replace(')', '')|replace('-', '')|replace(' ', '') }}?text=Olá {{ p.cliente.nome|urlencode }}, lembrando que a parcela {{ p.numero }}/{{ p.cliente.quantidade_parcelas }} do seu {{ p.cliente.carro }} vence em {{ (p.data_vencimento - now.date()).days }} dias ({{ p.data_vencimento.strftime('%d/%m/%Y') }}). Valor: R$ {{ '%.2f'|format(p.valor) }}. Posso enviar o boleto/PIX?" 
+                <a href="https://wa.me/55{{ p.cliente.telefone|replace('(', '')|replace(')', '')|replace('-', '')|replace(' ', '') }}?text={{ ('Olá ' + p.cliente.nome + ', lembrete amigável: a parcela ' + p.numero|string + '/' + p.cliente.quantidade_parcelas|string + ' do contrato ' + p.cliente.carro + ' vence em ' + (p.data_vencimento - now.date()).days|string + ' dias (' + p.data_vencimento.strftime('%d/%m/%Y') + '). Valor: ' + p.valor|real + '. Total financiado: ' + p.cliente.valor_total|real + '. Já foram pagas ' + p.cliente.parcelas|selectattr('pago')|list|length|string + ' parcelas. Faltam ' + (p.cliente.quantidade_parcelas - p.cliente.parcelas|selectattr('pago')|list|length)|string + ' parcelas. Obrigado!')|urlencode }}" 
                    target="_blank" class="btn btn-outline" style="background: #25D366; color: white; border: none;">
                     <i class="fab fa-whatsapp"></i> Notificar
                 </a>

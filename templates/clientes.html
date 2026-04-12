@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Clientes - Cobrança Inteligente{% endblock %}
+{% block title %}Clientes - Cobrança Fácil{% endblock %}
 
 {% block content %}
 <div class="card">
@@ -31,8 +31,8 @@
                     <td>{{ c.nome }}</td>
                     <td><i class="fas fa-phone-alt"></i> {{ c.telefone }}</td>
                     <td>{{ c.carro }}</td>
-                    <td>R$ {{ "%.2f"|format(c.valor_total) }}</td>
-                    <td>{{ c.quantidade_parcelas }}x de R$ {{ "%.2f"|format(c.valor_parcela) }}</td>
+                    <td>{{ c.valor_total|real }}</td>
+                    <td>{{ c.quantidade_parcelas }}x de {{ c.valor_parcela|real }}</td>
                     <td>Dia {{ c.dia_vencimento }}</td>
                     <td>
                         <a href="{{ url_for('editar_cliente', id=c.id) }}" class="btn btn-outline" style="padding: 0.3rem 1rem;">

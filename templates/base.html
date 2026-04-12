@@ -3,33 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>{% block title %}Cobrança Inteligente{% endblock %}</title>
-    
+    <title>{% block title %}Cobrança Fácil{% endblock %}</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Cobrança Auto">
+    <meta name="apple-mobile-web-app-title" content="Cobrança Fácil">
     <meta name="theme-color" content="#1e3c72">
-    
-    <!-- Splash Screen iOS -->
     <link rel="apple-touch-startup-image" href="/static/apple-icon-180x180.png">
-    
-    <!-- Ícones iOS -->
     <link rel="apple-touch-icon" href="/static/apple-icon-57x57.png">
     <link rel="apple-touch-icon" sizes="72x72" href="/static/apple-icon-72x72.png">
     <link rel="apple-touch-icon" sizes="114x114" href="/static/apple-icon-114x114.png">
     <link rel="apple-touch-icon" sizes="144x144" href="/static/apple-icon-144x144.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-icon-180x180.png">
-    
-    <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
     <link rel="shortcut icon" href="/static/favicon.ico">
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
         body { background: #f4f7fc; min-height: 100vh; display: flex; flex-direction: column; }
@@ -80,7 +71,7 @@
 </head>
 <body>
     <header class="header">
-        <h1><i class="fas fa-car"></i> Cobrança Auto Fácil</h1>
+        <h1><i class="fas fa-hand-holding-usd"></i> Cobrança Fácil</h1>
     </header>
     <nav class="nav-bar">
         <a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Dashboard</a>
@@ -97,14 +88,13 @@
                         {{ message }}
                     </div>
                 {% endfor %}
-            {% endif %}			
+            {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
     </main>
 
-cd ~/sistema-cobranca
-nano templates/base.html    <footer class="footer">
-        <p>&copy; {{ now.year }} Cobrança Auto Fácil – Lembretes inteligentes para seu negócio</p>
+    <footer class="footer">
+        <p>&copy; {{ now.year }} Cobrança Fácil – Lembretes inteligentes para seu negócio</p>
     </footer>
 
     <!-- Botão de Ajuda para Instalação -->
@@ -115,11 +105,9 @@ nano templates/base.html    <footer class="footer">
     </div>
 
     <script>
-        // Exibir botão apenas em dispositivos móveis
         if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             document.getElementById('installHelpButton').style.display = 'block';
         }
-
         function showInstallGuide() {
             let message = "";
             if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
@@ -131,8 +119,6 @@ nano templates/base.html    <footer class="footer">
             }
             alert(message);
         }
-
-        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/static/sw.js')
@@ -140,12 +126,9 @@ nano templates/base.html    <footer class="footer">
                     .catch(err => console.log('Erro no SW:', err));
             });
         }
-
-        // Notificações
         if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
             setTimeout(() => Notification.requestPermission(), 3000);
         }
-
         function verificarLembretesENotificar() {
             fetch('/api/lembretes')
                 .then(res => res.json())
@@ -154,7 +137,7 @@ nano templates/base.html    <footer class="footer">
                         data.lembretes.forEach(item => {
                             if (Notification.permission === 'granted') {
                                 navigator.serviceWorker.ready.then(reg => {
-                                    reg.showNotification('🔔 Cobrança Auto Fácil', {
+                                    reg.showNotification('🔔 Cobrança Fácil', {
                                         body: `${item.cliente} - Parcela ${item.parcela} vence em ${item.dias} dias. ${item.valor}`,
                                         icon: '/static/android-icon-192x192.png',
                                         badge: '/static/favicon-96x96.png',
@@ -168,7 +151,6 @@ nano templates/base.html    <footer class="footer">
                     }
                 }).catch(err => console.log('Erro:', err));
         }
-
         window.addEventListener('load', () => setTimeout(verificarLembretesENotificar, 5000));
         setInterval(verificarLembretesENotificar, 30 * 60 * 1000);
     </script>
