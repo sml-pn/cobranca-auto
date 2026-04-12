@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Editar Cliente - Cobrança Inteligente{% endblock %}
+{% block title %}Editar Cliente - Cobrança Fácil{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 700px; margin: 0 auto;">
@@ -40,7 +40,7 @@
         
         <div class="form-group">
             <label><i class="fas fa-info-circle"></i> Informações do Financiamento (não editáveis)</label>
-            <input type="text" value="Valor Total: R$ {{ "%.2f"|format(cliente.valor_total) }} | {{ cliente.quantidade_parcelas }}x de R$ {{ "%.2f"|format(cliente.valor_parcela) }}" readonly style="background: #f1f5f9;">
+            <input type="text" value="Valor Total: {{ cliente.valor_total|real }} | {{ cliente.quantidade_parcelas }}x de {{ cliente.valor_parcela|real }}" readonly style="background: #f1f5f9;">
         </div>
         
         <div class="form-actions">

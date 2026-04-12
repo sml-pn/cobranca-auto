@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Novo Cliente - Cobrança Inteligente{% endblock %}
+{% block title %}Novo Cliente - Cobrança Fácil{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 700px; margin: 0 auto;">
@@ -66,7 +66,7 @@
         const valorTotal = parseFloat(document.getElementById('valor_total').value) || 0;
         const quantidade = parseInt(document.getElementById('quantidade_parcelas').value) || 1;
         const valorParcela = valorTotal / quantidade;
-        document.getElementById('valor_parcela_preview').value = `R$ ${valorParcela.toFixed(2)} (${quantidade}x)`;
+        document.getElementById('valor_parcela_preview').value = `R$ ${valorParcela.toFixed(2).replace('.', ',')} (${quantidade}x)`;
     }
     
     document.getElementById('telefone').addEventListener('input', function(e) {

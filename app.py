@@ -6,7 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
 import calendar
-import pytz  # NOVO: para lidar com fuso horário
+import pytz
 
 app = Flask(__name__)
 app.secret_key = 'sua-chave-secreta-aqui-mude-para-algo-seguro'
@@ -23,6 +23,13 @@ else:
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# --- FILTRO PARA FORMATAR MOEDA (R$ 1.000,00) ---
+@app.template_filter('real')
+def format_real(value):
+    if value is None:
+        return "R$ 0,00"
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # --- MODELOS ---
 class Cliente(db.Model):
@@ -48,7 +55,7 @@ class Parcela(db.Model):
     pago = db.Column(db.Boolean, default=False)
     observacao = db.Column(db.String(200), nullable=True)
 
-# --- FUNÇÃO PARA DIA FIXO (agora com fuso) ---
+# --- FUNÇÃO PARA DIA FIXO ---
 def calcular_proximo_vencimento(data_base, dia_fixo):
     ano = data_base.year
     mes = data_base.month
@@ -65,7 +72,7 @@ def calcular_proximo_vencimento(data_base, dia_fixo):
         vencimento = date(ano, mes, dia)
     return vencimento
 
-# --- OBTÉM DATA/HORA ATUAL NO FUSO DE SÃO PAULO ---
+# --- OBTÉM DATA/HORA NO FUSO SP ---
 def agora_sp():
     return datetime.now(pytz.timezone('America/Sao_Paulo'))
 
@@ -82,26 +89,22 @@ def inject_now():
 def index():
     hoje = hoje_sp()
     
-    # Parcelas que vencem exatamente hoje
     vence_hoje = Parcela.query.filter(
         Parcela.data_vencimento == hoje,
         Parcela.pago == False
     ).order_by(Parcela.data_vencimento).all()
     
-    # Próximos 7 dias (inclui hoje)
     limite = hoje + timedelta(days=7)
     esta_semana = Parcela.query.filter(
         Parcela.data_vencimento.between(hoje, limite),
         Parcela.pago == False
     ).order_by(Parcela.data_vencimento).all()
     
-    # Parcelas vencidas (data menor que hoje)
     vencidas = Parcela.query.filter(
         Parcela.data_vencimento < hoje,
         Parcela.pago == False
     ).order_by(Parcela.data_vencimento).all()
     
-    # Total a receber (todas as pendentes)
     pendentes = Parcela.query.filter_by(pago=False).all()
     total_receber = sum(p.valor for p in pendentes)
     
@@ -142,7 +145,6 @@ def novo_cliente():
         db.session.add(cliente)
         db.session.flush()
         
-        # A data do primeiro vencimento vem do formulário
         data_primeira = datetime.strptime(request.form['data_primeiro_vencimento'], '%Y-%m-%d').date()
         
         for i in range(1, quantidade + 1):
@@ -221,7 +223,6 @@ def verificar_lembretes():
         if parcelas:
             print(f"\n===== {len(parcelas)} LEMBRETES GERADOS =====")
 
-# Agendador continua em UTC (mas a função interna usa fuso SP)
 scheduler = BackgroundScheduler(timezone='UTC')
 scheduler.add_job(func=verificar_lembretes, trigger=CronTrigger(hour=8, minute=0))
 scheduler.start()
