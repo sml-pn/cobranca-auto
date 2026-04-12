@@ -6,6 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
 import calendar
+import pytz  # NOVO: para lidar com fuso horário
 
 app = Flask(__name__)
 app.secret_key = 'sua-chave-secreta-aqui-mude-para-algo-seguro'
@@ -34,7 +35,7 @@ class Cliente(db.Model):
     quantidade_parcelas = db.Column(db.Integer, nullable=False, default=1)
     valor_parcela = db.Column(db.Float, nullable=False, default=0.0)
     dia_vencimento = db.Column(db.Integer, nullable=False, default=10)
-    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
+    data_cadastro = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('America/Sao_Paulo')))
     parcelas = db.relationship('Parcela', backref='cliente', lazy=True, cascade='all, delete-orphan')
 
 class Parcela(db.Model):
@@ -47,7 +48,7 @@ class Parcela(db.Model):
     pago = db.Column(db.Boolean, default=False)
     observacao = db.Column(db.String(200), nullable=True)
 
-# --- FUNÇÃO PARA DIA FIXO ---
+# --- FUNÇÃO PARA DIA FIXO (agora com fuso) ---
 def calcular_proximo_vencimento(data_base, dia_fixo):
     ano = data_base.year
     mes = data_base.month
@@ -64,15 +65,22 @@ def calcular_proximo_vencimento(data_base, dia_fixo):
         vencimento = date(ano, mes, dia)
     return vencimento
 
+# --- OBTÉM DATA/HORA ATUAL NO FUSO DE SÃO PAULO ---
+def agora_sp():
+    return datetime.now(pytz.timezone('America/Sao_Paulo'))
+
+def hoje_sp():
+    return agora_sp().date()
+
 # --- CONTEXTO GLOBAL ---
 @app.context_processor
 def inject_now():
-    return {'now': datetime.utcnow()}  # UTC para consistência com o servidor
+    return {'now': agora_sp()}
 
 # --- ROTAS ---
 @app.route('/')
 def index():
-    hoje = date.today()  # Usa a data local do servidor (UTC no Render, mas OK para comparação)
+    hoje = hoje_sp()
     
     # Parcelas que vencem exatamente hoje
     vence_hoje = Parcela.query.filter(
@@ -134,6 +142,7 @@ def novo_cliente():
         db.session.add(cliente)
         db.session.flush()
         
+        # A data do primeiro vencimento vem do formulário
         data_primeira = datetime.strptime(request.form['data_primeiro_vencimento'], '%Y-%m-%d').date()
         
         for i in range(1, quantidade + 1):
@@ -175,14 +184,14 @@ def editar_cliente(id):
 def pagar_parcela(id):
     parcela = Parcela.query.get_or_404(id)
     parcela.pago = True
-    parcela.data_pagamento = datetime.utcnow()
+    parcela.data_pagamento = agora_sp()
     db.session.commit()
     flash(f'Parcela {parcela.numero}/{parcela.cliente.quantidade_parcelas} de {parcela.cliente.nome} paga!', 'success')
     return redirect(url_for('index'))
 
 @app.route('/api/lembretes')
 def api_lembretes():
-    hoje = date.today()
+    hoje = hoje_sp()
     limite = hoje + timedelta(days=5)
     parcelas = Parcela.query.filter(
         Parcela.data_vencimento.between(hoje, limite),
@@ -203,7 +212,7 @@ def api_lembretes():
 # --- VERIFICAÇÃO DIÁRIA (LOG) ---
 def verificar_lembretes():
     with app.app_context():
-        hoje = date.today()
+        hoje = hoje_sp()
         alvo = hoje + timedelta(days=5)
         parcelas = Parcela.query.filter(
             Parcela.data_vencimento == alvo,
@@ -212,12 +221,13 @@ def verificar_lembretes():
         if parcelas:
             print(f"\n===== {len(parcelas)} LEMBRETES GERADOS =====")
 
+# Agendador continua em UTC (mas a função interna usa fuso SP)
 scheduler = BackgroundScheduler(timezone='UTC')
 scheduler.add_job(func=verificar_lembretes, trigger=CronTrigger(hour=8, minute=0))
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
-# --- CRIAÇÃO DAS TABELAS (SEM RESET – apenas cria se não existir) ---
+# --- CRIAÇÃO DAS TABELAS ---
 with app.app_context():
     db.create_all()
 
