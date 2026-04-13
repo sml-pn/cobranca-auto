@@ -88,26 +88,26 @@ def inject_now():
 @app.route('/')
 def index():
     hoje = hoje_sp()
-    
+
     vence_hoje = Parcela.query.filter(
         Parcela.data_vencimento == hoje,
         Parcela.pago == False
     ).order_by(Parcela.data_vencimento).all()
-    
+
     limite = hoje + timedelta(days=7)
     esta_semana = Parcela.query.filter(
         Parcela.data_vencimento.between(hoje, limite),
         Parcela.pago == False
     ).order_by(Parcela.data_vencimento).all()
-    
+
     vencidas = Parcela.query.filter(
         Parcela.data_vencimento < hoje,
         Parcela.pago == False
     ).order_by(Parcela.data_vencimento).all()
-    
+
     pendentes = Parcela.query.filter_by(pago=False).all()
     total_receber = sum(p.valor for p in pendentes)
-    
+
     return render_template('index.html',
                          vence_hoje=vence_hoje,
                          esta_semana=esta_semana,
@@ -126,12 +126,13 @@ def novo_cliente():
         ultimo = Cliente.query.order_by(Cliente.id.desc()).first()
         novo_id = (ultimo.id + 1) if ultimo else 1
         codigo = f"CLI-{novo_id:03d}"
-        
+
+        # O valor_total vem do campo hidden já no formato numérico (ex: 1500.00)
         valor_total = float(request.form['valor_total'])
         quantidade = int(request.form['quantidade_parcelas'])
         valor_parcela = valor_total / quantidade
         dia_vencimento = int(request.form.get('dia_vencimento', 10))
-        
+
         cliente = Cliente(
             codigo=codigo,
             nome=request.form['nome'],
@@ -144,15 +145,15 @@ def novo_cliente():
         )
         db.session.add(cliente)
         db.session.flush()
-        
+
         data_primeira = datetime.strptime(request.form['data_primeiro_vencimento'], '%Y-%m-%d').date()
-        
+
         for i in range(1, quantidade + 1):
             if i == 1:
                 data_vencimento = data_primeira
             else:
                 data_vencimento = calcular_proximo_vencimento(
-                    data_primeira + timedelta(days=30*(i-1)), 
+                    data_primeira + timedelta(days=30*(i-1)),
                     dia_vencimento
                 )
             parcela = Parcela(
@@ -163,7 +164,7 @@ def novo_cliente():
                 pago=False
             )
             db.session.add(parcela)
-        
+
         db.session.commit()
         flash(f'Cliente {codigo} cadastrado com {quantidade} parcelas!', 'success')
         return redirect(url_for('listar_clientes'))
